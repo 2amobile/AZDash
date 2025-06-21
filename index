@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard de Marge Pro Amazon</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #232f3e;  /* Bleu marine Amazon */
+            --secondary-color: #ff9900; /* Orange Amazon */
+            --background-color: #eaeded; /* Gris clair Amazon */
+            --text-color: #0f1111;
+            --card-bg: #ffffff;
+            --border-radius: 8px;
+            --box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            --positive-color: #27ae60;
+            --negative-color: #c0392b;
+            --neutral-color: #2980b9;
+        }
+        body {
+            font-family: 'Roboto', Arial, sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1000px;
+            margin: auto;
+        }
+        .card {
+            background-color: var(--card-bg);
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            padding: 25px 30px;
+            margin-bottom: 20px;
+        }
+        h1, h2 {
+            color: var(--primary-color);
+            border-bottom: 3px solid var(--secondary-color);
+            padding-bottom: 10px;
+            margin-top: 0;
+            font-weight: 700;
+        }
+        h1 { display: flex; align-items: center; font-size: 2em; flex-wrap: wrap;}
+        h1 img { height: 35px; margin-right: 15px; }
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+        }
+        .form-group { display: flex; flex-direction: column; }
+        label { font-weight: 500; margin-bottom: 8px; font-size: 0.95em; }
+        input, select, button {
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 1em;
+            width: 100%;
+            box-sizing: border-box;
+            transition: all 0.2s ease-in-out;
+        }
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--secondary-color);
+            box-shadow: 0 0 0 3px rgba(255, 153, 0, 0.25);
+        }
+        button {
+            color: white;
+            font-weight: 700;
+            border: none;
+            cursor: pointer;
+        }
+        .btn-primary { background-color: var(--secondary-color); color: var(--primary-color); }
+        .btn-primary:hover { background-color: #e68a00; }
+        .btn-secondary { background-color: #5a6e87; }
+        .btn-secondary:hover { background-color: #495a6f; }
+        .btn-delete { background-color: var(--negative-color); }
+        .btn-edit { background-color: var(--neutral-color); margin-left: 5px;}
+        .ht-ttc-group { display: flex; gap: 10px; }
+        .ht-ttc-group input { width: 50%; }
+
+        .results-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 20px; text-align: center; }
+        .result-item h3 { margin: 0 0 10px 0; font-size: 0.9em; color: #555; font-weight: 500; text-transform: uppercase; }
+        .result-value { font-size: 1.5em; font-weight: 700; }
+        .positive { color: var(--positive-color); }
+        .negative { color: var(--negative-color); }
+
+        .table-container { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background-color: #f8f8f8; font-weight: 500; cursor: pointer; }
+        th:hover { background-color: #f0f0f0; }
+        td .quantity-input { padding: 8px; width: 80px; text-align: center;}
+        
+        .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;}
+        .summary-card { padding: 20px; border-radius: var(--border-radius); color: white; }
+        .summary-card h2 { color: white; border-bottom-color: rgba(255,255,255,0.5); font-size: 1.2em;}
+        .summary-card .result-value { font-size: 2.5em; text-align: center; display: block; padding-top: 10px; color: white;}
+        .gross-margin-card { background-color: var(--neutral-color); }
+        .net-profit-card { background-color: var(--positive-color); }
+        .net-profit-card.negative-summary { background-color: var(--negative-color); }
+        
+        #notification {
+            position: fixed;
+            bottom: -100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: var(--primary-color);
+            color: white;
+            padding: 15px 25px;
+            border-radius: var(--border-radius);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            transition: bottom 0.5s ease-in-out;
+            z-index: 1000;
+        }
+        #notification.show { bottom: 20px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1><img src="https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg" alt="Logo Amazon">Dashboard de Marge Pro</h1>
+    
+    <!-- CALCULATEUR -->
+    <div class="card">
+        <h2>Calculateur & Enregistrement de Produit</h2>
+        <div class="form-grid">
+            <div class="form-group"><label for="productName">Nom du Produit</label><input type="text" id="productName" list="productList" placeholder="Ex: Livre ancien..."><datalist id="productList"></datalist></div>
+            <div class="form-group"><label for="productCostHT">Coût d'Achat (€)</label><div class="ht-ttc-group"><input type="number" id="productCostHT" placeholder="HT" step="0.01" min="0"><input type="number" id="productCostTTC" placeholder="TTC" step="0.01" min="0"></div></div>
+            <div class="form-group"><label for="packagingCostHT">Emballage (€)</label><div class="ht-ttc-group"><input type="number" id="packagingCostHT" placeholder="HT" step="0.01" min="0"><input type="number" id="packagingCostTTC" placeholder="TTC" step="0.01" min="0"></div></div>
+            <div class="form-group"><label for="shippingCostHT">Expédition (€)</label><div class="ht-ttc-group"><input type="number" id="shippingCostHT" placeholder="HT" step="0.01" min="0"><input type="number" id="shippingCostTTC" placeholder="TTC" step="0.01" min="0"></div></div>
+            <div class="form-group"><label for="amazonCategory">Catégorie Amazon</label><select id="amazonCategory"></select></div>
+            <div class="form-group"><label for="sellingPrice">Prix de Vente (€)</label><input type="number" id="sellingPrice" placeholder="29.99" step="0.01" min="0"></div>
+        </div>
+        <div class="form-grid" style="margin-top:20px; grid-template-columns: 2fr 1fr;">
+            <button id="saveProductBtn" class="btn-primary">💾 Enregistrer / Mettre à jour le produit</button>
+            <button id="clearFormBtn" class="btn-secondary">Nouveau</button>
+        </div>
+        <div class="results-grid" style="color:black; margin-top:20px; padding-top:20px; border-top: 1px solid #eee;">
+             <div class="result-item"><h3>Commission</h3><span id="commissionValue" class="result-value">0.00 €</span></div>
+             <div class="result-item"><h3>Marge Nette (1 unité)</h3><span id="netMarginValue" class="result-value">0.00 €</span></div>
+             <div class="result-item"><h3>Rentabilité</h3><span id="profitabilityValue" class="result-value">0.0 %</span></div>
+        </div>
+    </div>
+    
+    <!-- SOMMAIRE MENSUEL -->
+    <div class="summary-grid">
+        <div class="card">
+            <h2>Frais Fixes Mensuels</h2>
+            <div class="form-group">
+                <label for="fixedCosts">Abonnement, Loyer, etc. (€)</label>
+                <input type="number" id="fixedCosts" placeholder="Ex: 39.99" step="0.01" min="0">
+            </div>
+        </div>
+        <div class="summary-card gross-margin-card">
+            <h2>Marge Brute Mensuelle</h2>
+            <span id="monthlyGrossMarginValue" class="result-value">0.00 €</span>
+        </div>
+        <div class="summary-card net-profit-card" id="netProfitCard">
+            <h2>BÉNÉFICE NET MENSUEL</h2>
+            <span id="monthlyNetProfitValue" class="result-value">0.00 €</span>
+        </div>
+    </div>
+
+    <!-- TABLEAU DE PRODUITS -->
+    <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <h2>Mes Produits & Ventes du Mois</h2>
+            <div>
+                <button id="resetQuantitiesBtn" class="btn-secondary" style="margin-right: 10px;">🔄 Réinitialiser les quantités</button>
+                <button id="exportCsvBtn" class="btn-primary">📄 Exporter en CSV</button>
+            </div>
+        </div>
+        <div class="table-container">
+            <table id="productsTable">
+                <thead>
+                    <tr>
+                        <th data-sort="name">Produit ▼</th>
+                        <th data-sort="marginPerUnit">Marge/unité ▼</th>
+                        <th data-sort="quantity">Quantité Vendue ▼</th>
+                        <th data-sort="totalMargin">Marge Totale ▼</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div id="notification"></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    
+    // --- CONFIGURATION ---
+    const TVA_RATE = 0.20;
+    const amazonCommissions = {"Livres, Musique, Vidéo, DVD": 0.15,"Produits High-Tech & Accessoires": 0.07,"Informatique": 0.07,"Jeux vidéo & Accessoires": 0.15,"Cuisine & Maison": 0.15,"Bricolage & Outils": 0.12,"Jardin": 0.15,"Jouets & Jeux": 0.15,"Bébé & Puériculture": 0.15,"Beauté, Soins & Santé": 0.15,"Vêtements & Accessoires": 0.15,"Chaussures & Sacs": 0.15,"Bijoux": 0.20,"Montres": 0.15,"Sports & Loisirs": 0.15,"Épicerie": 0.08,"Fournitures de bureau": 0.15,"Instruments de musique": 0.12,"Auto et Moto": 0.10};
+    const minimumCommission = 0.30;
+    let savedProducts = [];
+    let sortConfig = { key: 'name', asc: true };
+
+    // --- DOM ELEMENTS ---
+    const dom = {
+        categorySelect: document.getElementById('amazonCategory'),
+        productListDatalist: document.getElementById('productList'),
+        productsTableBody: document.querySelector("#productsTable tbody"),
+        saveProductBtn: document.getElementById('saveProductBtn'),
+        clearFormBtn: document.getElementById('clearFormBtn'),
+        resetQuantitiesBtn: document.getElementById('resetQuantitiesBtn'),
+        exportCsvBtn: document.getElementById('exportCsvBtn'),
+        fixedCostsInput: document.getElementById('fixedCosts'),
+        notification: document.getElementById('notification'),
+        calculatorInputs: document.querySelectorAll('.card:first-of-type input, .card:first-of-type select')
+    };
+
+    // --- UTILITIES ---
+    function showNotification(message, duration = 3000) {
+        dom.notification.textContent = message;
+        dom.notification.classList.add('show');
+        setTimeout(() => dom.notification.classList.remove('show'), duration);
+    }
+
+    // --- CALCULATIONS ---
+    function setupTaxCalculation(htId, ttcId) {
+        const htInput = document.getElementById(htId);
+        const ttcInput = document.getElementById(ttcId);
+        htInput.addEventListener('input', () => { if (document.activeElement === htInput) ttcInput.value = (parseFloat(htInput.value) * (1 + TVA_RATE) || 0).toFixed(2); updateCalculatorUI(); });
+        ttcInput.addEventListener('input', () => { if (document.activeElement === ttcInput) htInput.value = (parseFloat(ttcInput.value) / (1 + TVA_RATE) || 0).toFixed(2); updateCalculatorUI(); });
+    }
+
+    function calculateMarginForProduct(product) {
+        const commissionRate = amazonCommissions[product.category] || 0;
+        let commission = product.price > 0 ? Math.max(product.price * commissionRate, minimumCommission) : 0;
+        const totalCost = product.cost + product.packaging + product.shipping + commission;
+        return product.price - totalCost;
+    }
+
+    function getCalculatorValues() {
+        return {
+            name: document.getElementById('productName').value.trim(),
+            cost: parseFloat(document.getElementById('productCostTTC').value) || 0,
+            packaging: parseFloat(document.getElementById('packagingCostTTC').value) || 0,
+            shipping: parseFloat(document.getElementById('shippingCostTTC').value) || 0,
+            price: parseFloat(document.getElementById('sellingPrice').value) || 0,
+            category: dom.categorySelect.value,
+        };
+    }
+    
+    // --- UI UPDATES ---
+    function updateCalculatorUI() {
+        const p = getCalculatorValues();
+        const netMargin = calculateMarginForProduct(p);
+        const profitability = p.price > 0 ? (netMargin / p.price) * 100 : 0;
+        const commission = p.price > 0 ? Math.max(p.price * (amazonCommissions[p.category] || 0), minimumCommission) : 0;
+
+        document.getElementById('commissionValue').textContent = `${commission.toFixed(2)} €`;
+        document.getElementById('netMarginValue').textContent = `${netMargin.toFixed(2)} €`;
+        document.getElementById('profitabilityValue').textContent = `${profitability.toFixed(1)} %`;
+        
+        const marginEl = document.getElementById('netMarginValue');
+        marginEl.classList.toggle('positive', netMargin > 0);
+        marginEl.classList.toggle('negative', netMargin < 0);
+    }
+
+    function renderProductsTable() {
+        // Sort products
+        savedProducts.sort((a, b) => {
+            let valA = a[sortConfig.key];
+            let valB = b[sortConfig.key];
+            if (sortConfig.key === 'marginPerUnit' || sortConfig.key === 'totalMargin') {
+                valA = sortConfig.key === 'marginPerUnit' ? calculateMarginForProduct(a) : calculateMarginForProduct(a) * (a.quantity || 0);
+                valB = sortConfig.key === 'marginPerUnit' ? calculateMarginForProduct(b) : calculateMarginForProduct(b) * (b.quantity || 0);
+            }
+
+            if (typeof valA === 'string') return valA.localeCompare(valB) * (sortConfig.asc ? 1 : -1);
+            return (valA - valB) * (sortConfig.asc ? 1 : -1);
+        });
+
+        dom.productsTableBody.innerHTML = "";
+        dom.productListDatalist.innerHTML = "";
+        savedProducts.forEach(p => dom.productListDatalist.appendChild(new Option(p.name)));
+
+        if (savedProducts.length === 0) {
+            dom.productsTableBody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding: 20px;">Utilisez le formulaire ci-dessus pour ajouter votre premier produit.</td></tr>`;
+        } else {
+            savedProducts.forEach(p => {
+                const marginPerUnit = calculateMarginForProduct(p);
+                const totalMargin = marginPerUnit * (p.quantity || 0);
+                const row = dom.productsTableBody.insertRow();
+                row.innerHTML = `
+                    <td><strong>${p.name}</strong><br><small style="color:#777;">${p.category}</small></td>
+                    <td class="${marginPerUnit >= 0 ? 'positive' : 'negative'}">${marginPerUnit.toFixed(2)} €</td>
+                    <td><input type="number" class="quantity-input" data-name="${p.name}" value="${p.quantity || 0}" min="0" step="1"></td>
+                    <td class="total-margin-cell ${totalMargin >= 0 ? 'positive' : 'negative'}">${totalMargin.toFixed(2)} €</td>
+                    <td><button class="btn-delete" data-name="${p.name}">X</button><button class="btn-edit" data-name="${p.name}">✎</button></td>`;
+            });
+        }
+        updateMonthlySummary();
+    }
+    
+    function updateMonthlySummary() {
+        const grossMargin = savedProducts.reduce((total, p) => total + (calculateMarginForProduct(p) * (p.quantity || 0)), 0);
+        const fixedCosts = parseFloat(dom.fixedCostsInput.value) || 0;
+        const netProfit = grossMargin - fixedCosts;
+
+        document.getElementById('monthlyGrossMarginValue').textContent = `${grossMargin.toFixed(2)} €`;
+        document.getElementById('monthlyNetProfitValue').textContent = `${netProfit.toFixed(2)} €`;
+        
+        const netProfitCard = document.getElementById('netProfitCard');
+        netProfitCard.classList.toggle('negative-summary', netProfit < 0);
+    }
+
+    // --- DATA MANAGEMENT ---
+    function saveAllData() {
+        const dataToSave = {
+            products: savedProducts,
+            fixedCosts: dom.fixedCostsInput.value
+        };
+        localStorage.setItem('amazonDashboardV5', JSON.stringify(dataToSave));
+    }
+
+    function loadAllData() {
+        const data = JSON.parse(localStorage.getItem('amazonDashboardV5'));
+        if (data) {
+            savedProducts = data.products || [];
+            dom.fixedCostsInput.value = data.fixedCosts || "";
+        }
+    }
+
+    // --- EVENT HANDLERS ---
+    function handleSaveProduct() {
+        const p = getCalculatorValues();
+        if (!p.name) { showNotification("Veuillez entrer un nom pour le produit.", 3000); return; }
+        
+        const existingProductIndex = savedProducts.findIndex(prod => prod.name === p.name);
+        if (existingProductIndex > -1) {
+            p.quantity = savedProducts[existingProductIndex].quantity || 0;
+            savedProducts[existingProductIndex] = p;
+        } else {
+            p.quantity = 0;
+            savedProducts.push(p);
+        }
+        
+        saveAllData();
+        renderProductsTable();
+        showNotification(`Produit "${p.name}" enregistré !`);
+    }
+    
+    function clearCalculatorForm() {
+        dom.calculatorInputs.forEach(input => {
+            if(input.tagName !== 'SELECT') input.value = "";
+        });
+        document.getElementById('productName').focus();
+    }
+    
+    function handleTableClick(e) {
+        const target = e.target;
+        const productName = target.closest('button')?.dataset.name;
+        if (!productName) return;
+
+        if (target.classList.contains('btn-delete')) {
+            if (confirm(`Voulez-vous vraiment supprimer le produit "${productName}" ?`)) {
+                savedProducts = savedProducts.filter(p => p.name !== productName);
+                saveAllData();
+                renderProductsTable();
+                showNotification("Produit supprimé.");
+            }
+        } else if (target.classList.contains('btn-edit')) {
+            handleAutofill(productName);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    }
+
+    function handleTableInput(e) {
+        if (e.target.classList.contains('quantity-input')) {
+            const productName = e.target.dataset.name;
+            const product = savedProducts.find(p => p.name === productName);
+            if (product) {
+                product.quantity = parseInt(e.target.value, 10) || 0;
+                const row = e.target.closest('tr');
+                const totalMarginCell = row.querySelector('.total-margin-cell');
+                const totalMargin = calculateMarginForProduct(product) * product.quantity;
+                totalMarginCell.textContent = `${totalMargin.toFixed(2)} €`;
+                totalMarginCell.className = `total-margin-cell ${totalMargin >= 0 ? 'positive' : 'negative'}`;
+                updateMonthlySummary();
+                saveAllData();
+            }
+        }
+    }
+    
+    function handleAutofill(productName) {
+        const pData = savedProducts.find(p => p.name === productName);
+        if (pData) {
+            document.getElementById('productName').value = pData.name;
+            document.getElementById('productCostTTC').value = pData.cost.toFixed(2);
+            document.getElementById('packagingCostTTC').value = pData.packaging.toFixed(2);
+            document.getElementById('shippingCostTTC').value = pData.shipping.toFixed(2);
+            document.getElementById('productCostHT').value = (pData.cost / (1 + TVA_RATE)).toFixed(2);
+            document.getElementById('packagingCostHT').value = (pData.packaging / (1 + TVA_RATE)).toFixed(2);
+            document.getElementById('shippingCostHT').value = (pData.shipping / (1 + TVA_RATE)).toFixed(2);
+            dom.categorySelect.value = pData.category;
+            document.getElementById('sellingPrice').value = pData.price.toFixed(2);
+            updateCalculatorUI();
+        }
+    }
+
+    function handleResetQuantities() {
+        if (confirm("Êtes-vous sûr de vouloir remettre toutes les quantités à zéro pour commencer un nouveau mois ?")) {
+            savedProducts.forEach(p => p.quantity = 0);
+            saveAllData();
+            renderProductsTable();
+            showNotification("Les quantités ont été réinitialisées.");
+        }
+    }
+
+    function handleExportCsv() {
+        let csvContent = "data:text/csv;charset=utf-8,Produit;Categorie;Cout Achat TTC;Emballage TTC;Expedition TTC;Prix Vente;Marge Unitaire;Quantite Vendue;Marge Totale\n";
+        savedProducts.forEach(p => {
+            const marginUnit = calculateMarginForProduct(p);
+            const marginTotal = marginUnit * (p.quantity || 0);
+            const row = [p.name, p.category, p.cost, p.packaging, p.shipping, p.price, marginUnit.toFixed(2), p.quantity || 0, marginTotal.toFixed(2)].join(";");
+            csvContent += row + "\n";
+        });
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `rapport_ventes_${new Date().toISOString().slice(0,10)}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        showNotification("Export CSV généré !");
+    }
+
+    function handleSort(e) {
+        if(e.target.tagName !== 'TH') return;
+        const newKey = e.target.dataset.sort;
+        if(sortConfig.key === newKey) {
+            sortConfig.asc = !sortConfig.asc;
+        } else {
+            sortConfig.key = newKey;
+            sortConfig.asc = true;
+        }
+        document.querySelectorAll('#productsTable th').forEach(th => th.textContent = th.textContent.replace(' ▼', '').replace(' ▲', ''));
+        e.target.textContent += sortConfig.asc ? ' ▼' : ' ▲';
+        renderProductsTable();
+    }
+
+    // --- INITIALIZATION ---
+    function init() {
+        Object.keys(amazonCommissions).sort().forEach(cat => dom.categorySelect.add(new Option(cat, cat)));
+        setupTaxCalculation('productCostHT', 'productCostTTC');
+        setupTaxCalculation('packagingCostHT', 'packagingCostTTC');
+        setupTaxCalculation('shippingCostHT', 'shippingCostTTC');
+        loadAllData();
+        renderProductsTable();
+        updateCalculatorUI();
+        
+        dom.calculatorInputs.forEach(input => input.addEventListener('input', updateCalculatorUI));
+        dom.saveProductBtn.addEventListener('click', handleSaveProduct);
+        dom.clearFormBtn.addEventListener('click', clearCalculatorForm);
+        dom.productsTableBody.addEventListener('click', handleTableClick);
+        dom.productsTableBody.addEventListener('input', handleTableInput);
+        document.getElementById('productName').addEventListener('input', (e) => handleAutofill(e.target.value));
+        dom.resetQuantitiesBtn.addEventListener('click', handleResetQuantities);
+        dom.exportCsvBtn.addEventListener('click', handleExportCsv);
+        dom.fixedCostsInput.addEventListener('input', updateMonthlySummary);
+        document.querySelector('#productsTable thead').addEventListener('click', handleSort);
+    }
+
+    init();
+});
+</script>
+
+</body>
+</html>
